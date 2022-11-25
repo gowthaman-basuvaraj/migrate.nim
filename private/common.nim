@@ -16,7 +16,7 @@ type
     postgres = "pgsql"
     sqlite = "sqlite3"
     unknown
-  ConnectionSettingsObj = object
+  ConnectionSettingsObj = object of RootObj
     ## Settings for a database connection
     connectionType*: ConnectionType
     server*: string

@@ -1,10 +1,10 @@
-## MySQL migration driver.
+## PostgreSQL migration driver.
 
 import driver
 
-import db_mysql
+import db_postgres
 from strutils import endsWith, parseInt
-from std/logging import debug, error
+from logging import debug, error
 from sets import incl, excl, HashSet, initSet, len, items, `$`
 from os import existsFile, `/`
 from nre import re, replace
@@ -26,25 +26,25 @@ let
   autoIncrementRegex = re" AUTO_INCREMENT=\d+"
 
 type
-  MysqlDriver* = ref object of Driver
+  PostgreSqlDriver* = ref object of Driver
     handle: DbConn
 
-proc initMysqlDriver*(settings: ConnectionSettings, migrationPath: string): MysqlDriver =
+proc initPostgreSqlDriver*(settings: ConnectionSettings, migrationPath: string): PostgreSqlDriver =
   new result
   result.connectionSettings = settings
   result.migrationPath = migrationPath
   result.handle = open(settings.server, settings.username, settings.password, settings.db)
 
-method ensureMigrationsTableExists*(d: MysqlDriver) =
+method ensureMigrationsTableExists*(d: PostgreSqlDriver) =
   ## Make sure that the `migrations` table exists in the database.
   d.handle.exec(createMigrationsTableCommand)
 
-method closeDriver*(d: MysqlDriver) =
+method closeDriver*(d: PostgreSqlDriver) =
   ## Close the driver and the underlying database connection.
-  ## debug("Closing MySQL connection")
+  ## debug("Closing PostgreSQL connection")
   d.handle.close()
 
-proc runUpMigration(d: MysqlDriver, query, migration: string, batch: int): bool =
+proc runUpMigration(d: PostgreSqlDriver, query, migration: string, batch: int): bool =
   ## Run and record an upwards migration.
   result = false
   try:
@@ -54,7 +54,7 @@ proc runUpMigration(d: MysqlDriver, query, migration: string, batch: int): bool 
   except DbError:
     error("Error running migration '", migration, "': ", getCurrentExceptionMsg())
 
-proc runDownMigration(d: MysqlDriver, query, migration: string, batch: int): bool =
+proc runDownMigration(d: PostgreSqlDriver, query, migration: string, batch: int): bool =
   ## Run and remove a downwards migration.
   result = false
   try:
@@ -64,7 +64,7 @@ proc runDownMigration(d: MysqlDriver, query, migration: string, batch: int): boo
   except DbError:
     error("Error reversing migration '", migration, "': ", getCurrentExceptionMsg())
 
-proc getLastBatchNumber(d: MysqlDriver): int =
+proc getLastBatchNumber(d: PostgreSqlDriver): int =
   ## Get the last used batch number from the `migrations` table.
   result = 0
   let value = d.handle.getValue(getNextBatchNumberCommand)
@@ -73,19 +73,19 @@ proc getLastBatchNumber(d: MysqlDriver): int =
   else:
     result = parseInt(value)
 
-proc getNextBatchNumber(d: MysqlDriver): int =
+proc getNextBatchNumber(d: PostgreSqlDriver): int =
   ## Get the next batch number.
   let lastNumber = d.getLastBatchNumber()
   result = lastNumber + 1
 
-iterator getRanMigrations(d: MysqlDriver): RanMigration =
+iterator getRanMigrations(d: PostgreSqlDriver): RanMigration =
   ## Get a list of all of the migrations that have already been ran.
   var ranMigration: RanMigration
   for row in d.handle.rows(getRanMigrationsCommand):
     ranMigration = (filename: row[0], batch: parseInt(row[1]))
     yield ranMigration
 
-proc getUpMigrationsToRun(d: MysqlDriver, path: string): HashSet[string] =
+proc getUpMigrationsToRun(d: PostgreSqlDriver, path: string): HashSet[string] =
   ## Get a set of pending upwards migrations from the given path.
   debug("Calculating up migrations to run")
   result = getFilenamesToCheck(path, ".up.sql")
@@ -100,7 +100,7 @@ proc getUpMigrationsToRun(d: MysqlDriver, path: string): HashSet[string] =
 
   debug("Got ", len(result), " files to run: ", $result)
 
-method runUpMigrations*(d: MysqlDriver): MigrationResult =
+method runUpMigrations*(d: PostgreSqlDriver): MigrationResult =
   ## Run all of the outstanding upwards migrations.
   result = (numRan: 0, batchNumber: d.getnextBatchNumber())
 
@@ -112,12 +112,12 @@ method runUpMigrations*(d: MysqlDriver): MigrationResult =
       if d.runUpMigration(fileContent, file, result.batchNumber):
         inc result.numRan
 
-iterator getMigrationsForBatch(d: MysqlDriver, batch: int): string =
+iterator getMigrationsForBatch(d: PostgreSqlDriver, batch: int): string =
   ## Get all of the migrations that have been ran for a given batch.
   for row in d.handle.rows(getRanMigrationsForBatchCommand, batch):
     yield row[0]
 
-method revertLastRanMigrations*(d: MysqlDriver): MigrationResult =
+method revertLastRanMigrations*(d: PostgreSqlDriver): MigrationResult =
   ## Wind back the most recent batch of migrations.
   result = (numRan: 0, batchNumber: d.getLastBatchNumber())
 
@@ -137,7 +137,7 @@ method revertLastRanMigrations*(d: MysqlDriver): MigrationResult =
         if d.runDownMigration(fileContent, file, result.batchNumber):
           inc result.numRan
 
-method revertAllMigrations*(d: MysqlDriver): MigrationResult =
+method revertAllMigrations*(d: PostgreSqlDriver): MigrationResult =
   ## Wind back all of the ran migrations.
   result = (numRan: 0, batchNumber: 0)
 
@@ -157,18 +157,18 @@ method revertAllMigrations*(d: MysqlDriver): MigrationResult =
         if d.runDownMigration(fileContent, file, batchNumber):
           inc result.numRan
 
-method getAllTablesForDatabase*(d: MysqlDriver, database: string): (iterator: string) =
+method getAllTablesForDatabase*(d: PostgreSqlDriver, database: string): (iterator: string) =
   ## Get the names of all of the tables within the given database.
   return iterator: string =
     for row in d.handle.rows(getTablesForDatabaseCommand, database):
       if row[0] != "migrations":
         yield row[0]
 
-method getCreateForTable*(d: MysqlDriver, table: string): string =
+method getCreateForTable*(d: PostgreSqlDriver, table: string): string =
   ## Get the create syntax for the given table.
   let row = d.handle.getRow(SqlQuery(getCreateForTableCommand & table & "`"), table)
   result = row[1].replace(autoIncrementRegex, "")
 
-method getDropForTable*(d: MysqlDriver, table: string): string =
+method getDropForTable*(d: PostgreSqlDriver, table: string): string =
   ## Get the drop syntax for the given table.
   result = "DROP TABLE IF EXISTS `" & table & "`;"

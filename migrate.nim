@@ -3,6 +3,7 @@
 import private/common, private/driver
 export common
 from private/driver_mysql import initMysqlDriver
+from private/driver_postgresql import initPostgreSqlDriver
 
 from os import expandFilename, existsDir, createDir, joinPath, changeFileExt
 from uri import parseUri, Uri
@@ -27,7 +28,7 @@ proc getDriver(connectionSettings: ConnectionSettings, migrationPath: string): D
     result = initMysqlDriver(connectionSettings, migrationPath)
   of ConnectionType.postgres:
     echo "Using Postgresql"
-    result = nil
+    result = initPostgreSqlDriver(connectionSettings, migrationPath)
   of ConnectionType.sqlite:
     echo "Using sqlite"
     result = nil
@@ -101,28 +102,9 @@ proc clean*(m: Migrator): MigrationResult =
 
 proc generate*(m: Migrator, db: string): int =
   ## Generate migrations to create all of the tables in the given database.
+  ## 
+  ## we have yet to do this...
   result = 0
-
-  if m.driver != nil:
-    let tables = m.driver.getAllTablesForDatabase(db)
-
-    var createTableCode: string
-    var dropTableCode: string
-    for table in tables():
-      debug("Creating migration for table '", table, "'")
-      createTableCode = m.driver.getCreateForTable(table)
-      dropTableCode = m.driver.getDropForTable(table)
-      let createdMigration = m.createMigration("create_" & db & "_" & table & "_table")
-
-      let upFile = open(createdMigration.up, fmReadWrite)
-      defer: close(upFile)
-      upFile.write(createTableCode)
-
-      let downFile = open(createdMigration.down, fmReadWrite)
-      defer: close(upFile)
-      downFile.write(dropTableCode)
-
-      inc result
 
 when isMainModule:
   import docopt
