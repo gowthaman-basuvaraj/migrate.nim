@@ -8,7 +8,7 @@ from private/driver_postgresql import initPostgreSqlDriver
 from os import expandFilename, dirExists, createDir, joinPath, changeFileExt
 from uri import parseUri, Uri
 from times import epochTime
-from logging import debug
+from logging import debug, error
 
 type
   MigrationDirection {.pure.} = enum
@@ -171,8 +171,10 @@ Options:
         let numMigrationsCreated = migrator.generate(db)
         info("Created ", numMigrationsCreated, " migrations for database '", db, "'")
     except DbError:
+      echo getCurrentException().getStackTrace()
       error("Error running SQL query: ", getCurrentExceptionMsg())
     except:
+      echo getCurrentException().getStackTrace()
       error("Unexpected error: ", getCurrentExceptionMsg())
 
   main()
