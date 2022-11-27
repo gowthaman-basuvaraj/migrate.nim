@@ -1,9 +1,10 @@
 ## Common types shared both publicly and privately.
 
-from sets import HashSet, initSet, incl
+from sets import HashSet, initHashSet, incl
 from os import walkDir, extractFilename, pcFile
 from strutils import endsWith
 from uri import Uri
+from logging import debug
 
 type
   MigrationResult* = tuple[numRan: int, batchNumber: int]
@@ -46,13 +47,11 @@ proc getConnectionSettings*(url: Uri): ConnectionSettings =
   result.username = url.username
   result.password = url.password
   result.db = url.path
-
   if result.db[0] == '/':
-    result.db = result.db[1..len(result.db)]
-
+    result.db = result.db[1..^1]
 proc getFilenamesToCheck*(path, postfix: string): HashSet[string] =
   ## Get a set of file names to check from the given directory with the given postfix.
-  result = initSet[string]()
+  result = initHashSet[string]()
   for kind, path in walkDir(path):
     if kind == pcFile and path.endsWith(postfix):
       result.incl(extractFilename(path))

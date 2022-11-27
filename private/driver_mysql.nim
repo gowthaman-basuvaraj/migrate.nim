@@ -5,8 +5,8 @@ import driver
 import db_mysql
 from strutils import endsWith, parseInt
 from std/logging import debug, error
-from sets import incl, excl, HashSet, initSet, len, items, `$`
-from os import existsFile, `/`
+from sets import incl, excl, HashSet, initHashSet, len, items, `$`
+from os import fileExists, `/`
 from nre import re, replace
 
 const
@@ -89,7 +89,7 @@ proc getUpMigrationsToRun(d: MysqlDriver, path: string): HashSet[string] =
   ## Get a set of pending upwards migrations from the given path.
   debug("Calculating up migrations to run")
   result = getFilenamesToCheck(path, ".up.sql")
-  var ranMigrations = initSet[string]()
+  var ranMigrations = initHashSet[string]()
 
   for migration, batch in d.getRanMigrations():
     ranMigrations.incl(migration)
@@ -131,7 +131,7 @@ method revertLastRanMigrations*(d: MysqlDriver): MigrationResult =
       debug("Found migration to revert: ", file)
       downFileName = file[0..^8] & ".down.sql"
       downFilePath = d.migrationPath / downFileName
-      if existsFile(downFilePath):
+      if fileExists(downFilePath):
         debug("Running down migration: ", downFilePath)
         fileContent = readFile(downFilePath)
         if d.runDownMigration(fileContent, file, result.batchNumber):
@@ -151,7 +151,7 @@ method revertAllMigrations*(d: MysqlDriver): MigrationResult =
       debug("Found migration to revert: ", file)
       downFileName = file[0..^8] & ".down.sql"
       downFilePath = d.migrationPath / downFileName
-      if existsFile(downFilePath):
+      if fileExists(downFilePath):
         debug("Running down migration: ", downFilePath)
         fileContent = readFile(downFilePath)
         if d.runDownMigration(fileContent, file, batchNumber):

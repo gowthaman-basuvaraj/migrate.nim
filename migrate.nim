@@ -5,7 +5,7 @@ export common
 from private/driver_mysql import initMysqlDriver
 from private/driver_postgresql import initPostgreSqlDriver
 
-from os import expandFilename, existsDir, createDir, joinPath, changeFileExt
+from os import expandFilename, dirExists, createDir, joinPath, changeFileExt
 from uri import parseUri, Uri
 from times import epochTime
 from logging import debug
@@ -47,7 +47,7 @@ proc initMigrator*(migrationsPath = "./", connectionString: string = ""): Migrat
   new result
   result.basePath = expandFilename(migrationsPath)
 
-  if not existsDir(result.basePath):
+  if not dirExists(result.basePath):
     createDir(result.basePath)
 
   result.driver = getDriver(connectionString, result.basePath)
@@ -57,7 +57,7 @@ proc initMigrator*(migrationsPath = "./", connectionSettings: ConnectionSettings
   new result
   result.basePath = expandFilename(migrationsPath)
 
-  if not existsDir(result.basePath):
+  if not dirExists(result.basePath):
     createDir(result.basePath)
 
   result.driver = getDriver(connectionSettings, result.basePath)

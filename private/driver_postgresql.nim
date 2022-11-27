@@ -4,15 +4,16 @@ import driver
 
 import db_postgres
 from strutils import endsWith, parseInt
-from logging import debug, error
-from sets import incl, excl, HashSet, initSet, len, items, `$`
-from os import existsFile, `/`
+from logging import debug, error, addHandler, newConsoleLogger
+from sets import incl, excl, HashSet, initHashSet, len, items, `$`
+from os import fileExists, `/`
 from nre import re, replace
 
+addHandler(newConsoleLogger())
 const
   createMigrationsTableCommand = sql"""CREATE TABLE IF NOT EXISTS migrations(
     filename VARCHAR(255) NOT NULL,
-    batch INT unsigned
+    batch serial
   );"""
   getRanMigrationsCommand = sql"SELECT filename, batch FROM migrations ORDER BY batch ASC, filename ASC;"
   getNextBatchNumberCommand = sql"SELECT MAX(batch) FROM migrations;"
@@ -83,13 +84,14 @@ iterator getRanMigrations(d: PostgreSqlDriver): RanMigration =
   var ranMigration: RanMigration
   for row in d.handle.rows(getRanMigrationsCommand):
     ranMigration = (filename: row[0], batch: parseInt(row[1]))
+    debug("ranMigration", ranMigration)
     yield ranMigration
 
 proc getUpMigrationsToRun(d: PostgreSqlDriver, path: string): HashSet[string] =
   ## Get a set of pending upwards migrations from the given path.
   debug("Calculating up migrations to run")
   result = getFilenamesToCheck(path, ".up.sql")
-  var ranMigrations = initSet[string]()
+  var ranMigrations = initHashSet[string]()
 
   for migration, batch in d.getRanMigrations():
     ranMigrations.incl(migration)
@@ -131,7 +133,7 @@ method revertLastRanMigrations*(d: PostgreSqlDriver): MigrationResult =
       debug("Found migration to revert: ", file)
       downFileName = file[0..^8] & ".down.sql"
       downFilePath = d.migrationPath / downFileName
-      if existsFile(downFilePath):
+      if fileExists(downFilePath):
         debug("Running down migration: ", downFilePath)
         fileContent = readFile(downFilePath)
         if d.runDownMigration(fileContent, file, result.batchNumber):
@@ -151,7 +153,7 @@ method revertAllMigrations*(d: PostgreSqlDriver): MigrationResult =
       debug("Found migration to revert: ", file)
       downFileName = file[0..^8] & ".down.sql"
       downFilePath = d.migrationPath / downFileName
-      if existsFile(downFilePath):
+      if fileExists(downFilePath):
         debug("Running down migration: ", downFilePath)
         fileContent = readFile(downFilePath)
         if d.runDownMigration(fileContent, file, batchNumber):

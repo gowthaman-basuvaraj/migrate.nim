@@ -6,3 +6,5 @@ nimsuggest.log
 *.sql
 migrate
 release/
+.idea/
+*.iml
