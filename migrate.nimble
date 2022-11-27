@@ -1,8 +1,8 @@
 # Package
 
-version       = "1.0.0"
-author        = "Euan T"
-description   = "A database migration tool written in Nim."
+version       = "2.0.0"
+author        = "Gowthaman Basuvaraj"
+description   = "A database migration tool written in Nim. Based on work by Euan T"
 license       = "BSD3"
 
 bin = @["migrate"]
