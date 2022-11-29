@@ -18,7 +18,7 @@ const
     filename VARCHAR(255) NOT NULL,
     batch serial
   );"""
-  getRanMigrationsCommand = sql"SELECT filename, batch FROM migrations ORDER BY batch ASC, filename ASC;"
+  getRanMigrationsCommand = sql"SELECT filename, batch FROM migrations ORDER BY batch DESC, filename DESC;"
   getNextBatchNumberCommand = sql"SELECT MAX(batch) FROM migrations;"
   insertRanMigrationCommand = sql"INSERT INTO migrations(filename, batch) VALUES (?, ?);"
   removeRanMigrationCommand = sql"DELETE FROM migrations WHERE filename = ? AND batch = ?;"
