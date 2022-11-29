@@ -8,3 +8,4 @@ migrate
 release/
 .idea/
 *.iml
+sample/

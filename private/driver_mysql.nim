@@ -5,7 +5,7 @@ import driver
 import db_mysql
 from strutils import endsWith, parseInt
 from std/logging import debug, error
-from sets import incl, excl, HashSet, initHashSet, len, items, `$`
+from sets import incl, excl, HashSet, initHashSet, len, items, `$`, OrderedSet, initOrderedSet
 from os import fileExists, `/`
 from nre import re, replace
 
@@ -86,18 +86,17 @@ iterator getRanMigrations(d: MysqlDriver): RanMigration =
     ranMigration = (filename: row[0], batch: parseInt(row[1]))
     yield ranMigration
 
-proc getUpMigrationsToRun(d: MysqlDriver, path: string): HashSet[string] =
+proc getUpMigrationsToRun(d: MysqlDriver, path: string): OrderedSet[string] =
   ## Get a set of pending upwards migrations from the given path.
   debug("Calculating up migrations to run")
   result = getFilenamesToCheck(path, ".up.sql")
-  var ranMigrations = initHashSet[string]()
+  var ranMigrations = initOrderedSet[string]()
 
   for migration, batch in d.getRanMigrations():
     ranMigrations.incl(migration)
+    result.excl(migration)
 
   debug("Found ", len(ranMigrations), " already ran migrations")
-
-  result.excl(ranMigrations)
 
   debug("Got ", len(result), " files to run: ", $result)
 

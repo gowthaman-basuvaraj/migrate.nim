@@ -1,6 +1,6 @@
 ## Common types shared both publicly and privately.
 
-from sets import HashSet, initHashSet, incl
+from sets import HashSet, initHashSet, incl, OrderedSet, initOrderedSet
 from os import walkDir, extractFilename, pcFile
 from strutils import endsWith
 from uri import Uri
@@ -49,9 +49,10 @@ proc getConnectionSettings*(url: Uri): ConnectionSettings =
   result.db = url.path
   if result.db[0] == '/':
     result.db = result.db[1..^1]
-proc getFilenamesToCheck*(path, postfix: string): HashSet[string] =
+    
+proc getFilenamesToCheck*(path, postfix: string): OrderedSet[string] =
   ## Get a set of file names to check from the given directory with the given postfix.
-  result = initHashSet[string]()
+  result = initOrderedSet[string]()
   for kind, path in walkDir(path):
     if kind == pcFile and path.endsWith(postfix):
       result.incl(extractFilename(path))

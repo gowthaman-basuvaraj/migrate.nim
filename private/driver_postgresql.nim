@@ -8,7 +8,7 @@ import std/sugar
 
 from strutils import endsWith, parseInt
 from logging import debug, error, addHandler, newConsoleLogger
-from sets import incl, excl, HashSet, initHashSet, len, items, `$`
+from sets import incl, excl, HashSet, initHashSet, len, items, `$`, OrderedSet, initOrderedSet
 from os import fileExists, `/`
 from nre import re, replace
 
@@ -96,18 +96,19 @@ iterator getRanMigrations(d: PostgreSqlDriver): RanMigration =
     debug("ranMigration", ranMigration)
     yield ranMigration
 
-proc getUpMigrationsToRun(d: PostgreSqlDriver, path: string): HashSet[string] =
+proc getUpMigrationsToRun(d: PostgreSqlDriver, path: string): OrderedSet[string] =
   ## Get a set of pending upwards migrations from the given path.
   debug("Calculating up migrations to run")
   result = getFilenamesToCheck(path, ".up.sql")
-  var ranMigrations = initHashSet[string]()
+  var ranMigrations = initOrderedSet[string]()
 
   for migration, batch in d.getRanMigrations():
     ranMigrations.incl(migration)
+    result.excl(migration)
 
   debug("Found ", len(ranMigrations), " already ran migrations")
 
-  result.excl(ranMigrations)
+  
 
   debug("Got ", len(result), " files to run: ", $result)
 
