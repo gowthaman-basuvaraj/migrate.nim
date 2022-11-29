@@ -3,6 +3,9 @@
 import driver
 
 import db_postgres
+import std/sequtils
+import std/sugar
+
 from strutils import endsWith, parseInt
 from logging import debug, error, addHandler, newConsoleLogger
 from sets import incl, excl, HashSet, initHashSet, len, items, `$`
@@ -49,17 +52,23 @@ proc runUpMigration(d: PostgreSqlDriver, query, migration: string, batch: int): 
   ## Run and record an upwards migration.
   result = false
   try:
-    d.handle.exec(SqlQuery(query))
+    let queries = strutils.split(query, ";").filter(q => len(q) > 0)
+    for q in queries:
+      d.handle.exec(SqlQuery(q))
     d.handle.exec(insertRanMigrationCommand, migration, batch)
     result = true
   except DbError:
-    error("Error running migration '", migration, "': ", getCurrentExceptionMsg())
+    let exp = getCurrentException()
+    echo exp.getStackTrace()
+    error("Error running migration '", migration, "': ", exp.msg)
 
 proc runDownMigration(d: PostgreSqlDriver, query, migration: string, batch: int): bool =
   ## Run and remove a downwards migration.
   result = false
   try:
-    d.handle.exec(SqlQuery(query))
+    let queries = strutils.split(query, ";").filter(q => len(q) > 0)
+    for q in queries:
+      d.handle.exec(SqlQuery(q))
     d.handle.exec(removeRanMigrationCommand, migration, batch)
     result = true
   except DbError:

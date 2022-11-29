@@ -52,6 +52,7 @@ proc runUpMigration(d: MysqlDriver, query, migration: string, batch: int): bool 
     d.handle.exec(insertRanMigrationCommand, migration, batch)
     result = true
   except DbError:
+    echo getCurrentException().getStackTrace()
     error("Error running migration '", migration, "': ", getCurrentExceptionMsg())
 
 proc runDownMigration(d: MysqlDriver, query, migration: string, batch: int): bool =
