@@ -22,7 +22,7 @@ const
   getNextBatchNumberCommand = sql"SELECT MAX(batch) FROM migrations;"
   insertRanMigrationCommand = sql"INSERT INTO migrations(filename, batch) VALUES (?, ?);"
   removeRanMigrationCommand = sql"DELETE FROM migrations WHERE filename = ? AND batch = ?;"
-  getRanMigrationsForBatchCommand = sql"SELECT filename FROM migrations WHERE batch = ? ORDER BY filename ASC;"
+  getRanMigrationsForBatchCommand = sql"SELECT filename FROM migrations WHERE batch = ? ORDER BY filename DESC;"
   getTablesForDatabaseCommand = sql"SELECT TABLE_NAME FROM information_schema.tables WHERE TABLE_SCHEMA = ?;"
   getCreateForTableCommand = "SHOW CREATE TABLE `"
 
